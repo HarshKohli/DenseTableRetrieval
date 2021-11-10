@@ -1,0 +1,6 @@
+train_data_dir: datasets/train_questions
+dev_data_dir: datasets/dev_questions
+wikitables: datasets/tables.json
+filtered_tables: datasets/preprocessed/tables_filtered.json
+train_data: datasets/preprocessed/train.json
+dev_data: datasets/preprocessed/dev.json
