@@ -4,3 +4,6 @@ wikitables: datasets/tables.json
 filtered_tables: datasets/preprocessed/tables_filtered.json
 train_data: datasets/preprocessed/train.json
 dev_data: datasets/preprocessed/dev.json
+random_neg_ratio: 1
+hard_neg_ratio: 1
+sample_hard: True
