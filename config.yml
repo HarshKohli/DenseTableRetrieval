@@ -1,9 +1,11 @@
 pretrain_data_dir: datasets/pretrain_data/train_questions
 pretrain_dev_data_dir: datasets/pretrain_data/dev_questions
 wikitables: datasets/tables.json
-filtered_tables: datasets/preprocessed/tables_filtered.json
-pretrain_data: datasets/preprocessed/train.json
-pretrain_dev_data: datasets/preprocessed/dev.json
+filtered_tables: datasets/preprocessed/tables_filtered.txt
+pretrain_data: datasets/preprocessed/train.txt
+pretrain_dev_data: datasets/preprocessed/dev.txt
 random_neg_ratio: 1
 hard_neg_ratio: 1
 sample_hard_pretrain: False
+execute_greedily: True
+batch_size: 32

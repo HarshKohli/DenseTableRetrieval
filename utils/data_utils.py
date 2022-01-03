@@ -6,8 +6,6 @@ import json
 import gzip
 import random
 from rank_bm25 import BM25Okapi
-from gensim import corpora
-from gensim.summarization import bm25
 
 
 def parse_zipped(data_dir):
@@ -153,7 +151,7 @@ def filter_useful_tables(wikitables, tables, outfile):
         if id in tables:
             parsed_table = parse_table_info(info)
             filtered_tables[parsed_table['id']] = parsed_table
-            filtered.write(json.dumps(parsed_table))
+            filtered.write(json.dumps(parsed_table) + '\n')
             matched_count = matched_count + 1
             filtered_ids.add(id)
     all_tables.close()
@@ -167,7 +165,43 @@ def write_datafile(data, outfile, id_list):
     count = 0
     for info in data:
         if info['context_id'] in id_list:
-            preprocessed_file.write(json.dumps(info))
+            preprocessed_file.write(json.dumps(info) + '\n')
             count = count + 1
     print('Done writing ' + str(count) + ' files')
     preprocessed_file.close()
+
+
+def load_pairwise_data(filepath):
+    data_file = open(filepath, 'r', encoding='utf8')
+    pairwise_data = []
+    for sample in data_file.readlines():
+        pairwise_data.append(json.loads(sample))
+    return pairwise_data
+
+def load_table_data(filepath):
+    data_file = open(filepath, 'r', encoding='utf8')
+    table_data = {}
+    for sample in data_file.readlines():
+        info = json.loads(sample)
+        table_data[info['id']] = {'pgTitle': info['pgTitle'], 'table_data': info['table_data']}
+    return table_data
+
+def create_batches(data, tables, batch_size):
+    questions = [sample['question'] for sample in data]
+    context_ids = [sample['context_id'] for sample in data]
+    titles = [tables[sample['context_id']]['pgTitle'] for sample in data]
+    all_tables = [tables[sample['context_id']]['table_data'] for sample in data]
+    labels = [sample['label'] for sample in data]
+
+    question_batches = [questions[i * batch_size:(i + 1) * batch_size] for i in
+                        range((len(questions) + batch_size - 1) // batch_size)]
+    context_batches = [context_ids[i * batch_size:(i + 1) * batch_size] for i in
+                        range((len(context_ids) + batch_size - 1) // batch_size)]
+    title_batches = [titles[i * batch_size:(i + 1) * batch_size] for i in
+                        range((len(titles) + batch_size - 1) // batch_size)]
+    table_batches = [all_tables[i * batch_size:(i + 1) * batch_size] for i in
+                     range((len(all_tables) + batch_size - 1) // batch_size)]
+    label_batches = [labels[i * batch_size:(i + 1) * batch_size] for i in
+                     range((len(labels) + batch_size - 1) // batch_size)]
+
+    return question_batches, context_batches, title_batches, table_batches, label_batches
