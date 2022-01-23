@@ -33,18 +33,15 @@ log_path = os.path.join(config['log_dir'], model_name)
 def train_step(input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
                question_type):
     with tf.GradientTape() as tape:
-        # loss = model([questions, pgTitles, table_data, labels, context_ids])
-        embeddings = model(
-            [input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
-             question_type])
-    # gradients = tape.gradient(loss, model.trainable_variables)
-    # optimizer.apply_gradients(
-    #     (grad, var)
-    #     for (grad, var) in zip(gradients, model.trainable_variables)
-    #     if grad is not None
-    # )
-    return embeddings
-    # return loss
+        loss = model([input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
+                      question_type])
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(
+        (grad, var)
+        for (grad, var) in zip(gradients, model.trainable_variables)
+        if grad is not None
+    )
+    return loss
 
 
 train_dataset = TableDataset(train_data, tables, tokenizer, question_tokenizer)
@@ -64,10 +61,11 @@ for epoch_num in range(config['num_epochs']):
     print('Starting Epoch: ' + str(epoch_num))
     iteration = 0
     for batch in train_dataloader:
-        print(iteration)
         input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type = batch
-        embeddings = train_step(input_ids, attention_mask, token_type_ids, questions, labels, question_inputs,
-                                question_mask, question_type)
+        loss = train_step(input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
+                          question_type)
+        if iteration % 10 == 0:
+            print('Done with ' + str(iteration) + ' iterations. Loss is ' + str(loss.numpy()))
         iteration = iteration + 1
 
     print('Completed Epoch. Saving Latest Model...')
