@@ -8,7 +8,7 @@ random_neg_ratio: 1
 hard_neg_ratio: 1
 sample_hard_pretrain: False
 execute_greedily: True
-batch_size: 2
+batch_size: 4
 log_dir: logs
 model_name: synthetic_pretrained
 base_model: google/tapas-base

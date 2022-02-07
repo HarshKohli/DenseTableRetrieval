@@ -2,6 +2,7 @@
 # Date Created: 04-01-2022
 
 import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
 import tensorflow as tf
 
 
@@ -24,7 +25,7 @@ class TableDataset:
                                           return_tensors="tf")
                 encoding = {key: tf.squeeze(val, 0) for key, val in encoding.items()}
                 question_encoding = self.question_tokenizer(sample['question'], padding="max_length", truncation=True,
-                                                            return_tensors="tf")
+                                                            return_tensors="tf", max_length=128)
                 question_input = {key: tf.squeeze(val, 0) for key, val in question_encoding.data.items()}
                 yield encoding['input_ids'], encoding['attention_mask'], encoding['token_type_ids'], sample[
                     'question'], float(sample['label']), question_input['input_ids'], question_input['attention_mask'], \
@@ -36,3 +37,34 @@ class TableDataset:
         return len(self.data)
 
     __call__ = __iter__
+
+
+def get_dev_metrics(dev_tables, dev_questions, dev_labels):
+    metrics_dict, tp, tn, fp, fn = {}, 0, 0, 0, 0
+    for table, question, label in zip(dev_tables, dev_questions, dev_labels):
+        sim = cosine_similarity([table], [question])
+        if label == 0:
+            if sim > 0.5:
+                tp = tp + 1
+            else:
+                fn = fn + 1
+        else:
+            if sim < 0.5:
+                tn = tn + 1
+            else:
+                fp = fp + 1
+    if (tp + fp) > 0:
+        metrics_dict['precision'] = tp / (tp + fp)
+        metrics_dict['recall'] = tp / (tp + fn)
+        metrics_dict['f_score'] = 2 * metrics_dict['precision'] * metrics_dict['recall'] / (
+                    metrics_dict['precision'] + metrics_dict['recall'])
+    else:
+        metrics_dict['precision'] = 0.0
+        metrics_dict['recall'] = 0.0
+        metrics_dict['f_score'] = 0.0
+    metrics_dict['accuracy'] = (tp + tn) / (tp + tn + fp + fn)
+    metrics_dict['tp'] = tp
+    metrics_dict['tn'] = tn
+    metrics_dict['fp'] = fp
+    metrics_dict['fn'] = fn
+    return metrics_dict

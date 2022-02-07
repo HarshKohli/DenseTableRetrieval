@@ -186,3 +186,20 @@ def load_table_data(filepath):
         info = json.loads(sample)
         table_data[info['id']] = {'pgTitle': info['pgTitle'], 'table_data': info['table_data']}
     return table_data
+
+
+def write_metrics(filename, metrics_dict, epoch):
+    metric_file = open(filename, 'a', encoding='utf8')
+    if epoch == 0:
+        for index, (metric, value) in enumerate(metrics_dict.items()):
+            if index == len(metrics_dict) - 1:
+                metric_file.write(metric + '\n')
+            else:
+                metric_file.write(metric + ',')
+    for index, (metric, value) in enumerate(metrics_dict.items()):
+        if index == len(metrics_dict) - 1:
+            metric_file.write(str(value) + '\n')
+        else:
+            metric_file.write(str(value) + ',')
+        print(metric + ' at the end of epoch ' + str(epoch) + ' is ' + str(value))
+    metric_file.close()
