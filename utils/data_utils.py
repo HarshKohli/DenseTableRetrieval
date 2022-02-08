@@ -24,6 +24,20 @@ def parse_zipped(data_dir):
     return all_data, contexts
 
 
+def read_nq_data(file_path):
+    nq_file = open(file_path, 'r', encoding='utf8')
+    all_data, contexts = [], set()
+    for line in nq_file.readlines():
+        info = json.loads(line)
+        for question in info['questions']:
+            sample = {'question': question['originalText'], 'context_id': info['table']['tableId'], 'label': '1.0',
+                      'answer': question['answer']['answerTexts'][0]}
+            all_data.append(sample)
+            contexts.add(sample['context_id'])
+        nq_file.close()
+    return all_data, contexts
+
+
 def random_negatives(data, table_ids, ratio):
     rand_neg = []
     table_list = list(table_ids)
@@ -46,8 +60,6 @@ def get_table_words(tables):
     docs, index_to_id = [], {}
     for index, (_, table) in enumerate(tables.items()):
         doc = table['pgTitle'].lower().split()
-        doc.extend(table['sectionTitle'].lower().split())
-        doc.extend(table['tableCaption'].lower().split())
         for col_name, rows in table['table_data'].items():
             doc.extend(col_name.lower().split())
             for row in rows:
@@ -96,13 +108,19 @@ def hard_negatives(data, tables, ratio):
     return data
 
 
-def negative_sampling(train_data, dev_data, filtered_ids, filtered_tables, rand_ratio, hard_ratio, use_hard):
+def negative_sampling(train_data, dev_data, filtered_ids, filtered_tables, rand_ratio, hard_ratio, use_hard,
+                      test_data=None
+                      ):
     if use_hard:
         train_data = hard_negatives(train_data, filtered_tables, hard_ratio)
         dev_data = hard_negatives(dev_data, filtered_tables, hard_ratio)
+        if test_data:
+            test_data = hard_negatives(test_data, filtered_tables, hard_ratio)
     train_data = random_negatives(train_data, filtered_ids, rand_ratio)
     dev_data = random_negatives(dev_data, filtered_ids, rand_ratio)
-    return train_data, dev_data
+    if test_data:
+        test_data = random_negatives(test_data, filtered_ids, rand_ratio)
+    return train_data, dev_data, test_data
 
 
 def parse_table_info(info):
@@ -117,7 +135,6 @@ def parse_table_info(info):
         sample_table['tableCaption'] = ''
 
     table_data = {}
-
     col_info = info['tableHeaders']
     all_cols = []
     for col in col_info[0]:
@@ -158,6 +175,45 @@ def filter_useful_tables(wikitables, tables, outfile):
     filtered.close()
     print('Filtered ' + str(matched_count) + ' tables from Wikipedia tables')
     return filtered_ids, filtered_tables
+
+
+def parse_nqtables_info(info):
+    sample_table = {}
+    sample_table['id'] = info['tableId']
+    sample_table['pgTitle'] = info['documentTitle']
+
+    all_cols, table_data, num_empty = [], {}, 0
+    for col in info['columns']:
+        if col['text'] == '':
+            table_data['#' + str(num_empty)] = []
+            all_cols.append('#' + str(num_empty))
+            num_empty = num_empty + 1
+        else:
+            table_data[col['text']] = []
+            all_cols.append(col['text'])
+
+    for row in info['rows']:
+        for index, cell in enumerate(row['cells']):
+            col_name = all_cols[index]
+            table_data[col_name].append(cell['text'])
+
+    sample_table['table_data'] = table_data
+    return sample_table
+
+
+def parse_nq_tables(nq_tables_file, outfile):
+    all_tables = open(nq_tables_file, 'r', encoding='utf8')
+    all_tables_outfile = open(outfile, 'w', encoding='utf8')
+    nq_ids, nq_tables = set(), {}
+    for table in all_tables:
+        info = json.loads(table)
+        parsed_table = parse_nqtables_info(info)
+        nq_ids.add(parsed_table['id'])
+        nq_tables[parsed_table['id']] = parsed_table
+        all_tables_outfile.write(json.dumps(parsed_table) + '\n')
+    all_tables.close()
+    all_tables_outfile.close()
+    return nq_ids, nq_tables
 
 
 def write_datafile(data, outfile, id_list):
@@ -203,3 +259,8 @@ def write_metrics(filename, metrics_dict, epoch):
             metric_file.write(str(value) + ',')
         print(metric + ' at the end of epoch ' + str(epoch) + ' is ' + str(value))
     metric_file.close()
+
+
+def create_dir_if_not_exists(dir):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
