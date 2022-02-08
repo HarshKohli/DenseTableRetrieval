@@ -41,6 +41,7 @@ def train_step(input_ids, attention_mask, token_type_ids, questions, labels, que
     with tf.GradientTape() as tape:
         loss = model([input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
                       question_type], training=True)
+        loss = tf.reduce_mean(loss)
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(
         (grad, var)

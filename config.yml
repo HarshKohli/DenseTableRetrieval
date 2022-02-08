@@ -1,4 +1,4 @@
-model_name: nq_plus_synthetic_finetuned
+model_name: synthetic_pretrained
 pretrain_data_dir: datasets/pretrain_data/train_questions
 pretrain_dev_data_dir: datasets/pretrain_data/dev_questions
 wikitables: datasets/tables.json
@@ -13,11 +13,11 @@ finetune_dev_data: datasets/nq_data/interactions/dev.jsonl
 finetune_test_data: datasets/nq_data/interactions/test.jsonl
 nq_tables: datasets/nq_data/tables/tables.jsonl
 nq_tables_preprocessed: datasets/preprocessed/nq_tables.txt
-load_weights: True
+load_weights: False
 pretrained_model: saved_models/synthetic_pretrained/0.h5
 random_neg_ratio: 1
 hard_neg_ratio: 1
-execute_greedily: True
+execute_greedily: False
 batch_size: 4
 log_dir: logs
 base_model: google/tapas-base

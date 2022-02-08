@@ -21,7 +21,7 @@ class TableEncoder(Model):
         d_sqrt = tf.sqrt(d)
         loss = labels * d + (tf.ones(shape=[tf.shape(labels)[0]]) - labels) * tf.square(
             tf.maximum(0., self.margin - d_sqrt))
-        loss = 0.5 * tf.reduce_mean(loss)
+        loss = 0.5 * loss
         return loss
 
     @tf.function
