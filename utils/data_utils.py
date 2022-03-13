@@ -264,3 +264,11 @@ def write_metrics(filename, metrics_dict, epoch):
 def create_dir_if_not_exists(dir):
     if not os.path.exists(dir):
         os.makedirs(dir)
+
+
+def filter_positive_testset(test_data):
+    positive_set = []
+    for datum in test_data:
+        if datum['label'] == '1.0':
+            positive_set.append(datum)
+    return positive_set

@@ -7,7 +7,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from transformers import TapasTokenizer, BertTokenizer
 from models import TableEncoder
-from utils.training_utils import TableDataset, get_dev_metrics
+from utils.training_utils import PairwiseDataset, get_dev_metrics
 from utils.data_utils import load_pairwise_data, load_table_data, write_metrics, create_dir_if_not_exists
 
 print(tf.__version__)
@@ -63,9 +63,9 @@ def question_embedding_step(question_inputs, question_mask, question_type):
     return question_embeddings
 
 
-train_dataset = TableDataset(train_data, tables, tokenizer, question_tokenizer)
-dev_dataset = TableDataset(dev_data, tables, tokenizer, question_tokenizer)
-test_dataset = TableDataset(test_data, tables, tokenizer, question_tokenizer)
+train_dataset = PairwiseDataset(train_data, tables, tokenizer, question_tokenizer)
+dev_dataset = PairwiseDataset(dev_data, tables, tokenizer, question_tokenizer)
+test_dataset = PairwiseDataset(test_data, tables, tokenizer, question_tokenizer)
 
 output_signature = (
     tf.TensorSpec(shape=(512,), dtype=tf.int32),

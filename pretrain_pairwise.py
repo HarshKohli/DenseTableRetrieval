@@ -7,7 +7,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from transformers import TapasTokenizer, BertTokenizer
 from models import TableEncoder
-from utils.training_utils import TableDataset, get_dev_metrics
+from utils.training_utils import PairwiseDataset, get_dev_metrics
 from utils.data_utils import load_pairwise_data, load_table_data, write_metrics, create_dir_if_not_exists
 
 options = tf.data.Options()
@@ -33,8 +33,8 @@ save_path = os.path.join(config['model_dir'], model_name)
 log_file = os.path.join(config['log_dir'], model_name + '.tsv')
 create_dir_if_not_exists(save_path)
 
-train_dataset = TableDataset(train_data, tables, tokenizer, question_tokenizer)
-dev_dataset = TableDataset(dev_data, tables, tokenizer, question_tokenizer)
+train_dataset = PairwiseDataset(train_data, tables, tokenizer, question_tokenizer)
+dev_dataset = PairwiseDataset(dev_data, tables, tokenizer, question_tokenizer)
 
 output_signature = (
     tf.TensorSpec(shape=(512,), dtype=tf.int32),
@@ -115,6 +115,7 @@ for epoch_num in range(config['num_epochs']):
             print('Done with ' + str(iteration) + ' iterations out of ' + num_iterations + '. Loss is ' + str(
                 loss.numpy()))
         iteration = iteration + 1
+        break
 
     print('Completed Epoch. Saving Latest Model...')
     model.save_weights(os.path.join(save_path, str(epoch_num)) + '.h5')
