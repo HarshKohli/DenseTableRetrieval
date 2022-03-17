@@ -19,7 +19,7 @@ random_neg_ratio: 1
 hard_neg_ratio: 1
 execute_greedily: False
 batch_size: 4
-log_dir: logs
+log_file: logs/test_results.tsv
 base_model: google/tapas-base
 base_question_encoder: bert-base-uncased
 base_tokenizer: google/tapas-base
@@ -27,3 +27,6 @@ model_dir: saved_models
 learning_rate: 0.00005
 num_epochs: 2
 contrastive_loss_margin: 0.5
+test_index: ann_index/test_tables.ann
+dim: 768
+find_p: [1, 10, 50, 1000]

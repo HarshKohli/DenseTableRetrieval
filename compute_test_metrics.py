@@ -6,7 +6,7 @@ import yaml
 import tensorflow as tf
 from transformers import TapasTokenizer, BertTokenizer
 from models import TableEncoder
-from utils.training_utils import PairwiseDataset, TablesDataset
+from utils.training_utils import PairwiseDataset, TablesDataset, index_embeddings, metrics_logger
 from utils.data_utils import load_pairwise_data, load_table_data, filter_positive_testset
 
 print(tf.__version__)
@@ -62,7 +62,8 @@ output_signature = (
     tf.TensorSpec(shape=(), dtype=tf.float32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
-    tf.TensorSpec(shape=(128), dtype=tf.int32))
+    tf.TensorSpec(shape=(128), dtype=tf.int32),
+    tf.TensorSpec(shape=(), dtype=tf.string))
 
 tables_output_signature = (
     tf.TensorSpec(shape=(512,), dtype=tf.int32),
@@ -76,7 +77,7 @@ tables_dataloader = tf.data.Dataset.from_generator(tables_dataset, output_signat
     batch_size)
 
 print('Loading model...')
-input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type = next(
+input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type, _ = next(
     iter(train_dataloader))
 loss = train_step(input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask,
                   question_type)
@@ -84,22 +85,29 @@ model.load_weights(config['pretrained_model'])
 print('Done Loading model... Computing Question Embeddings')
 
 num_iterations = str(int(len(test_data) // batch_size))
-test_questions, test_labels = [], []
+test_info_dict = {}
 for test_iteration, test_batch in enumerate(test_dataloader):
-    input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type = test_batch
-    question_embeddings = question_embedding_step(question_inputs, question_mask, question_type)
-    test_questions.extend(question_embeddings.numpy())
-    test_labels.extend(labels.numpy())
+    input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type, context_ids = test_batch
+    question_embeddings = question_embedding_step(question_inputs, question_mask, question_type).numpy()
+    for question, question_embedding, context_id in zip(questions, question_embeddings, context_ids):
+        test_info_dict[question.numpy().decode('ascii')] = {'table_id': context_id.numpy().decode('ascii'),
+                                                            'embedding': question_embedding}
     if test_iteration % 100 == 0:
         print('Done with ' + str(test_iteration) + ' iterations out of ' + num_iterations)
 
 print('Computing Table Embeddings... ')
 num_iterations = str(int(len(tables) // batch_size))
-test_tables = {}
+test_index_to_vec, test_id_to_index, index = {}, {}, 0
 for test_iteration, test_batch in enumerate(tables_dataloader):
     input_ids, attention_mask, token_type_ids, table_ids = test_batch
     table_embeddings = table_embedding_step(input_ids, attention_mask, token_type_ids)
     for table_id, table_embedding in zip(table_ids, table_embeddings):
-        test_tables[table_id.numpy().decode('ascii')] = table_embedding
+        test_id_to_index[table_id.numpy().decode('ascii')] = index
+        test_index_to_vec[index] = table_embedding
+        index = index + 1
     if test_iteration % 100 == 0:
         print('Done with ' + str(test_iteration) + ' iterations out of ' + num_iterations)
+
+index_embeddings(test_index_to_vec, config['test_index'], config['dim'])
+metrics_logger(test_info_dict, test_id_to_index, config['test_index'], config['dim'], 'nq_tables', config['find_p'],
+               config['log_file'])

@@ -75,7 +75,8 @@ output_signature = (
     tf.TensorSpec(shape=(), dtype=tf.float32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
-    tf.TensorSpec(shape=(128), dtype=tf.int32))
+    tf.TensorSpec(shape=(128), dtype=tf.int32),
+    tf.TensorSpec(shape=(), dtype=tf.string))
 
 train_dataloader = tf.data.Dataset.from_generator(train_dataset, output_signature=output_signature).shuffle(
     1000).batch(batch_size)
@@ -121,7 +122,7 @@ for epoch_num in range(config['num_epochs']):
     print('Computing Test scores...')
     test_tables, test_questions, test_labels = [], [], []
     for test_iteration, test_batch in enumerate(test_dataloader):
-        input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type = test_batch
+        input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type, _ = test_batch
         table_embeddings = table_embedding_step(input_ids, attention_mask, token_type_ids)
         question_embeddings = question_embedding_step(question_inputs, question_mask, question_type)
         test_tables.extend(table_embeddings.numpy())

@@ -44,7 +44,8 @@ output_signature = (
     tf.TensorSpec(shape=(), dtype=tf.float32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
     tf.TensorSpec(shape=(128), dtype=tf.int32),
-    tf.TensorSpec(shape=(128), dtype=tf.int32))
+    tf.TensorSpec(shape=(128), dtype=tf.int32),
+    tf.TensorSpec(shape=(), dtype=tf.string))
 
 with strategy.scope():
     train_dataloader = tf.data.Dataset.from_generator(train_dataset, output_signature=output_signature).shuffle(
@@ -110,7 +111,9 @@ for epoch_num in range(config['num_epochs']):
     print('Starting Epoch: ' + str(epoch_num))
     iteration = 0
     for batch in tqdm(dist_train_dataloader):
-        loss = distributed_train_step(batch)
+        input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type, _ = batch
+        loss = distributed_train_step((input_ids, attention_mask, token_type_ids, questions, labels, question_inputs,
+                                       question_mask, question_type))
         if iteration % 100 == 0:
             print('Done with ' + str(iteration) + ' iterations out of ' + num_iterations + '. Loss is ' + str(
                 loss.numpy()))
@@ -123,7 +126,7 @@ for epoch_num in range(config['num_epochs']):
     print('Done saving. Computing Dev scores...')
     dev_tables, dev_questions, dev_labels = [], [], []
     for dev_iteration, dev_batch in enumerate(dev_dataloader):
-        input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type = dev_batch
+        input_ids, attention_mask, token_type_ids, questions, labels, question_inputs, question_mask, question_type, _ = dev_batch
         table_embeddings = distributed_table_embedding_step((input_ids, attention_mask, token_type_ids))
         question_embeddings = distributed_question_embedding_step((question_inputs, question_mask, question_type))
         dev_tables.extend(table_embeddings.numpy())
